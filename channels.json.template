@@ -1,0 +1,14 @@
+{
+  "channels": [
+    {
+      "name": "Example English Channel",
+      "id": "UC_x5XG1OV2P6uYZ5ujSZ9Gg",
+      "lang": "en"
+    },
+    {
+      "name": "Example Japanese Channel",
+      "id": "UC1opHUrw8rvnsadT-i27U4w",
+      "lang": "ja"
+    }
+  ]
+}

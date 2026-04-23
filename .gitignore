@@ -1,0 +1,35 @@
+# macOS system files
+.DS_Store
+.AppleDouble
+.LSOverride
+Icon
+._*
+.DocumentRevisions-V100
+.Spotlight-V100
+.Trashes
+.VolumeIcon.icns
+.com.apple.timemachine.donotpresent
+.AppleDB
+.AppleDesktop
+Network Trash Folder
+Temporary Items
+.apdisk
+
+# Reference folders
+ref/
+refs/
+
+# Python
+venv/
+.env
+__pycache__/
+*.log
+latest_selection.json
+history.json
+channels.json
+.cache/
+downloads/
+
+# Tests
+tests/fixtures/
+tests/output/
