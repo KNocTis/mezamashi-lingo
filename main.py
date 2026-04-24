@@ -34,6 +34,20 @@ class WorkflowManager:
         self.downloader = VideoDownloader()
         self.transcriber = VideoTranscriber()
         self.translator = SubtitleTranslator(self.llm_client)
+        self.repository = Repository()
+
+    def _save_glossary(self, video: VideoMetadata, json_path: str, glossary: List[GlossaryTerm]):
+        """Saves glossary to JSON and triggers HTML generation."""
+        if not glossary:
+            return
+            
+        with open(json_path, 'w', encoding='utf-8') as f:
+            json.dump([g.model_dump(mode='json') for g in glossary], f, ensure_ascii=False, indent=2)
+        
+        # Trigger HTML generation
+        # We need a dummy 'transcriptions' list for run_glossary
+        # Note: run_glossary doesn't actually use 'json_path' or 'segments' from the tuple
+        self.run_glossary([(video, None, None)])
 
     def run_fetch(self) -> Dict[str, Optional[VideoMetadata]]:
         logger.info("PHASE 1: Starting daily video fetch...")
@@ -97,12 +111,11 @@ class WorkflowManager:
                 logger.info(f"Building new glossary for {video.lang} video: {video.local_path}")
                 glossary = self.translator.build_glossary(segments, source_lang=video.lang)
                 if glossary:
-                    with open(vocab_path, 'w', encoding='utf-8') as f:
-                        json.dump([g.model_dump(mode='json') for g in glossary], f, ensure_ascii=False, indent=2)
-                    print(f"[{video.lang.upper()}] Vocabulary JSON generated.")
-            
-            # Also generate HTML by default when running vocabulary phase
-            self.run_glossary([(video, json_path, segments)])
+                    self._save_glossary(video, vocab_path, glossary)
+                    print(f"[{video.lang.upper()}] Vocabulary generated (JSON + HTML).")
+            else:
+                # If glossary existed, still regenerate HTML to be safe
+                self.run_glossary([(video, json_path, segments)])
 
     def run_glossary(self, transcriptions: List[tuple]):
         logger.info("PHASE 4.5: Starting glossary HTML generation...")
@@ -158,8 +171,7 @@ class WorkflowManager:
                 logger.info(f"Glossary missing. Building before translation...")
                 glossary = self.translator.build_glossary(segments, source_lang=video.lang)
                 if glossary:
-                    with open(vocab_path, 'w', encoding='utf-8') as f:
-                        json.dump([g.model_dump(mode='json') for g in glossary], f, ensure_ascii=False, indent=2)
+                    self._save_glossary(video, vocab_path, glossary)
             
             # 2. Translate
             all_translated = []

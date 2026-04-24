@@ -144,10 +144,16 @@ class YouTubeClient:
                 logger.info(f"[RAW_API] videos.list: {json.dumps(response, ensure_ascii=False)}")
 
                 for item in response.get('items', []):
-                    duration_str = item['contentDetails']['duration']
-                    seconds = self._parse_duration(duration_str)
-                    durations[item['id']] = seconds
-                    self._set_cache(f"duration_{item['id']}", seconds)
+                    vid = item['id']
+                    content_details = item.get('contentDetails', {})
+                    duration_str = content_details.get('duration')
+                    
+                    if duration_str:
+                        seconds = self._parse_duration(duration_str)
+                        durations[vid] = seconds
+                        self._set_cache(f"duration_{vid}", seconds)
+                    else:
+                        logger.warning(f"Video {vid} has no duration (could be a livestream or upcoming). Skipping.")
             
             return durations
         except HttpError as e:
@@ -180,7 +186,7 @@ class YouTubeClient:
                 'url': f"https://www.youtube.com/watch?v={video_id}",
                 'published_at': item['snippet']['publishedAt'],
                 'video_id': video_id,
-                'duration_sec': self._parse_duration(item['contentDetails']['duration']),
+                'duration_sec': self._parse_duration(item.get('contentDetails', {}).get('duration', '')),
                 'thumbnail_url': item['snippet']['thumbnails'].get('high', {}).get('url')
             }
             
