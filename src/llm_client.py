@@ -98,17 +98,14 @@ Example: {{"index": 0, "reason": "This is a travel documentary, which provides a
 """
 
         try:
-            chat_completion = litellm.completion(
-                model=self.model,
-                messages=[
-                    {
-                        "role": "user",
-                        "content": prompt,
-                    }
-                ]
-            )
+            content = self.completion([
+                {
+                    "role": "user",
+                    "content": prompt,
+                }
+            ])
 
-            result = json.loads(chat_completion.choices[0].message.content)
+            result = json.loads(content)
             selected_index = int(result.get("index", 0))
             reason = result.get("reason", "No reason provided.")
             
