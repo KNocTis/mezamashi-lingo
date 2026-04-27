@@ -132,37 +132,19 @@ class VideoTranscriber:
         # Initial transcription
         result = model.transcribe(audio_to_transcribe, language=language)
         
+        # Step 1.5: Save as Raw JSON (PRE-segmentation, for word-level timestamps and manual tweaking)
+        if settings.log_level.upper() == 'DEBUG':
+            raw_json_path = os.path.splitext(file_path)[0] + ".raw.json"
+            result.save_as_json(raw_json_path)
+            logger.info(f"Raw transcription saved to: {raw_json_path}")
+        
         # --- Smart Segmentation Logic ---
         logger.info(f"Applying smart segmentation for {language}...")
         
         # 1. Basic regrouping to join word-level fragments
         result.regroup()
-        
-        if language == 'en':
-            # 2. Split by strong punctuation (End of sentence)
-            result.split_by_punctuation([('.', ' '), ('? ', ' '), ('! ', ' ')])
-            
-            # 3. Split by secondary punctuation if the segment is still long (Commas, etc.)
-            result.split_by_punctuation([(',', ' '), ('; ', ' '), (': ', ' '), (' - ', ' ')])
-            
-            # 4. Split by natural pauses in speech (Gaps > 0.4s)
-            result.split_by_gap(0.4)
-            
-            # 5. Final safety split: Force break if line exceeds study-friendly length
-            result.split_by_length(max_chars=50, max_words=12)
-            
-            # 6. Final cleanup: Merge tiny fragments that were split too aggressively
-            result.merge_by_gap(0.15)
-            
-        elif language == 'ja':
-            # Japanese usually has shorter lines visually due to character density
-            result.split_by_punctuation([('。', ''), ('？', ''), ('！', ''), ('、', '')])
-            result.split_by_gap(0.5)
-            result.split_by_length(max_chars=20)
-        else:
-            # Default for other languages
-            result.split_by_punctuation([('.', ' '), ('? ', ' '), ('! ', ' ')])
-            result.split_by_length(max_chars=50)
+        # Actually the default regroup is already pretty good.
+        # We don't need to do anything else for now.
 
         # Step 2: Save as SRT if requested
         if output_srt:
