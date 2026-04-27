@@ -13,9 +13,14 @@ class Settings(BaseSettings):
     fallback_llm_api_key: Optional[str] = None
     fallback_llm_api_base: Optional[str] = None
     
+    # LLM Advanced Settings
+    llm_max_tokens: Optional[int] = None
+    llm_extra_params: Optional[str] = None # JSON string for extra parameters
+    
     # Paths
     log_dir: str = "logs"
     download_dir: str = "downloads"
+    fallback_download_dir: str = "downloads" # Local fallback if NAS is down
     vocals_dir: str = "downloads/vocals"
     channels_file: str = "channels.json"
     history_file: str = "history.json"

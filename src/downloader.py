@@ -12,7 +12,19 @@ from typing import Dict, List, Optional
 class VideoDownloader:
     def __init__(self, download_path=None):
         self.download_path = download_path or settings.download_dir
-        os.makedirs(self.download_path, exist_ok=True)
+        
+        # Fallback logic: if primary path is unavailable, use fallback
+        try:
+            os.makedirs(self.download_path, exist_ok=True)
+            # Extra check: is it actually writable?
+            if not os.access(self.download_path, os.W_OK):
+                raise OSError("Directory not writable")
+        except (OSError, IOError) as e:
+            logger.warning(f"Primary download path '{self.download_path}' unavailable: {e}. Using fallback.")
+            self.download_path = settings.fallback_download_dir
+            os.makedirs(self.download_path, exist_ok=True)
+        
+        logger.info(f"Active download directory: {self.download_path}")
 
     def download_videos(self, selected_videos: Dict[str, Optional[VideoMetadata]]) -> List[VideoMetadata]:
         """Downloads the selected videos for each language."""
@@ -51,6 +63,9 @@ class VideoDownloader:
                 'quiet': False,
                 'no_warnings': True,
                 'logger': logger,
+                'remote_components': ['ejs:github'],
+                # If still getting "VPN/Proxy Detected", ensure you are logged into YouTube in Chrome.
+                'cookiesfrombrowser': ('chrome',), 
             }
             
             try:

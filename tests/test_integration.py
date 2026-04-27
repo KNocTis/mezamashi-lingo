@@ -31,6 +31,10 @@ def youtube_client():
 
 @pytest.fixture
 def llm_client():
+    from src.config import settings
+    # No token limit to avoid truncation, but still disable reasoning output
+    settings.llm_max_tokens = None 
+    settings.llm_extra_params = '{"include_reasoning": false, "temperature": 0}'
     return LLMClient()
 
 @pytest.fixture
@@ -93,8 +97,8 @@ def test_translation_success(translator):
     for s in segments:
         s.translated_text = None
     
-    # Set batch size to 25 to force two batches if segments count is ~50
-    translator.batch_size = 25
+    # Set batch size to 5 to force two batches for our 10-line fixture
+    translator.batch_size = 5
     
     translated_chunks = list(translator.translate_segments(segments, source_lang="ja"))
     

@@ -25,6 +25,17 @@ class LLMClient:
                 call_kwargs['api_base'] = self.api_base
             if self.api_key:
                 call_kwargs['api_key'] = self.api_key
+            
+            # Apply advanced settings
+            if settings.llm_max_tokens:
+                call_kwargs['max_tokens'] = settings.llm_max_tokens
+            
+            if settings.llm_extra_params:
+                try:
+                    extra = json.loads(settings.llm_extra_params)
+                    call_kwargs.update(extra)
+                except Exception as e:
+                    logger.warning(f"Failed to parse LLM_EXTRA_PARAMS: {e}")
                 
             return litellm.completion(
                 model=self.model,

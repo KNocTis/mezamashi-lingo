@@ -21,33 +21,36 @@ class TestVideoFetcher(unittest.TestCase):
             return []
         
         mock_instance.get_recent_videos.side_effect = mock_get_recent
+        mock_instance.get_video_durations.return_value = {'id_en': 100, 'id_ja': 200}
+        mock_instance.api_key = "fake_key"
 
         # Dummy channels file content
         channels_data = {
             "channels": [
-                {"id": "en_channel", "lang": "en"},
-                {"id": "ja_channel", "lang": "ja"}
+                {"id": "en_channel", "name": "EN Channel", "lang": "en"},
+                {"id": "ja_channel", "name": "JA Channel", "lang": "ja"}
             ]
         }
 
         with patch('builtins.open', unittest.mock.mock_open(read_data=json.dumps(channels_data))):
-            fetcher = VideoFetcher("fake_key", "fake_channels.json")
+            fetcher = VideoFetcher(mock_instance)
             selected = fetcher.fetch_daily_videos()
 
             self.assertIsNotNone(selected['en'])
             self.assertIsNotNone(selected['ja'])
-            self.assertEqual(selected['en']['title'], 'EN Video')
-            self.assertEqual(selected['ja']['title'], 'JA Video')
+            self.assertEqual(selected['en'].title, 'EN Video')
+            self.assertEqual(selected['ja'].title, 'JA Video')
 
     @patch('src.fetcher.YouTubeClient')
     def test_fetch_daily_videos_empty(self, MockClient):
         mock_instance = MockClient.return_value
         mock_instance.get_recent_videos.return_value = []
+        mock_instance.api_key = "fake_key"
 
-        channels_data = {"channels": [{"id": "en_channel", "lang": "en"}]}
+        channels_data = {"channels": [{"id": "en_channel", "name": "EN Channel", "lang": "en"}]}
 
         with patch('builtins.open', unittest.mock.mock_open(read_data=json.dumps(channels_data))):
-            fetcher = VideoFetcher("fake_key", "fake_channels.json")
+            fetcher = VideoFetcher(mock_instance)
             selected = fetcher.fetch_daily_videos()
 
             self.assertIsNone(selected['en'])

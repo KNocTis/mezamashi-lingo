@@ -31,7 +31,11 @@ class VideoTranscriber:
 
     def separate_vocals(self, file_path, vocals_dir=None):
         """Separates vocals using demucs. Skips if already exists."""
-        vocals_dir = vocals_dir or settings.vocals_dir
+        if not vocals_dir:
+            # Default to a 'vocals' subdirectory next to the video file
+            # This ensures it follows the same storage (NAS or Local) as the video
+            vocals_dir = os.path.join(os.path.dirname(file_path), "vocals")
+            
         os.makedirs(vocals_dir, exist_ok=True)
         base_name = os.path.splitext(os.path.basename(file_path))[0]
         
