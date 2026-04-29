@@ -6,7 +6,9 @@ import torch
 import shutil
 import subprocess
 
-logger = logging.getLogger(__name__)
+from src.logger import logger_manager
+
+logger = logger_manager.get_main_logger("fetch", __name__)
 
 from .models import TranscriptionSegment
 from .config import settings
@@ -115,11 +117,20 @@ class VideoTranscriber:
             logger.error(traceback.format_exc())
             return file_path
 
-    def transcribe(self, file_path, language=None, use_vocal_separation=True, output_srt=True) -> List[TranscriptionSegment]:
+    def transcribe(self, file_path, language=None, use_vocal_separation=True, output_srt=True, video_id="fetch") -> List[TranscriptionSegment]:
         """Transcribes a video/audio file, saves to SRT/JSON, and returns the segments."""
         if not os.path.exists(file_path):
             logger.error(f"File not found: {file_path}")
             return []
+
+        logger_manager.log_transcription_params({
+            "model_name": self.model_name,
+            "is_arm64": self.is_arm64,
+            "language": language,
+            "use_vocal_separation": use_vocal_separation,
+            "output_srt": output_srt,
+            "file_path": file_path
+        }, video_id)
 
         # Step 1: Vocal Separation
         audio_to_transcribe = file_path

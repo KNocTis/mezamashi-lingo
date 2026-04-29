@@ -6,9 +6,10 @@ from .youtube_client import YouTubeClient
 from .llm_client import LLMClient
 from .models import VideoMetadata, HistoryEntry
 from .repository import Repository
-from .config import settings
+from src.logger import logger_manager
+logger = logger_manager.get_main_logger("fetch", __name__)
 
-logger = logging.getLogger(__name__)
+from .config import settings
 
 class VideoFetcher:
     def __init__(self, youtube_client: YouTubeClient, llm_client: Optional[LLMClient] = None):

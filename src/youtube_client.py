@@ -4,9 +4,8 @@ import json
 import time
 from googleapiclient.discovery import build
 from googleapiclient.errors import HttpError
-import logging
-
-logger = logging.getLogger(__name__)
+from src.logger import logger_manager
+logger = logger_manager.get_main_logger("fetch", __name__)
 
 from .config import settings
 
@@ -51,10 +50,17 @@ class YouTubeClient:
                 part="contentDetails",
                 id=channel_id
             )
+            start_time = time.time()
             response = request.execute()
+            duration_ms = int((time.time() - start_time) * 1000)
             
-            # Log raw response at INFO level as requested
-            logger.info(f"[RAW_API] channels.list: {json.dumps(response, ensure_ascii=False)}")
+            # Log raw response
+            logger_manager.log_youtube_api(
+                "channels.list",
+                {"part": "contentDetails", "id": channel_id},
+                response,
+                duration_ms
+            )
 
             if not response.get('items'):
                 logger.error(f"No channel found with ID: {channel_id}")
@@ -84,10 +90,17 @@ class YouTubeClient:
                 playlistId=playlist_id,
                 maxResults=50
             )
+            start_time = time.time()
             response = request.execute()
+            duration_ms = int((time.time() - start_time) * 1000)
             
-            # Log raw response at INFO level as requested
-            logger.info(f"[RAW_API] playlistItems.list: {json.dumps(response, ensure_ascii=False)}")
+            # Log raw response
+            logger_manager.log_youtube_api(
+                "playlistItems.list",
+                {"part": "snippet", "playlistId": playlist_id, "maxResults": 50},
+                response,
+                duration_ms
+            )
 
             for item in response.get('items', []):
                 published_at_str = item['snippet']['publishedAt']
@@ -138,10 +151,17 @@ class YouTubeClient:
                     part="contentDetails",
                     id=",".join(batch)
                 )
+                start_time = time.time()
                 response = request.execute()
+                duration_ms = int((time.time() - start_time) * 1000)
                 
-                # Log raw response at INFO level as requested
-                logger.info(f"[RAW_API] videos.list: {json.dumps(response, ensure_ascii=False)}")
+                # Log raw response
+                logger_manager.log_youtube_api(
+                    "videos.list (batch)",
+                    {"part": "contentDetails", "id": ",".join(batch)},
+                    response,
+                    duration_ms
+                )
 
                 for item in response.get('items', []):
                     vid = item['id']
@@ -172,9 +192,16 @@ class YouTubeClient:
                 part="snippet,contentDetails",
                 id=video_id
             )
+            start_time = time.time()
             response = request.execute()
+            duration_ms = int((time.time() - start_time) * 1000)
             
-            logger.info(f"[RAW_API] videos.list (single): {json.dumps(response, ensure_ascii=False)}")
+            logger_manager.log_youtube_api(
+                "videos.list (single)",
+                {"part": "snippet,contentDetails", "id": video_id},
+                response,
+                duration_ms
+            )
 
             if not response.get('items'):
                 logger.error(f"No video found with ID: {video_id}")

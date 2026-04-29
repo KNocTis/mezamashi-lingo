@@ -3,9 +3,8 @@ import re
 import logging
 import json
 import time
-from src.llm_client import LLMClient
-
-logger = logging.getLogger(__name__)
+from src.logger import logger_manager
+logger = logger_manager.get_main_logger("fetch", __name__)
 
 from .llm_client import LLMClient
 from .models import TranscriptionSegment, GlossaryTerm
@@ -77,7 +76,7 @@ Rules:
         except json.JSONDecodeError:
             return None
 
-    def build_glossary(self, segments: List[TranscriptionSegment], source_lang) -> List[GlossaryTerm]:
+    def build_glossary(self, segments: List[TranscriptionSegment], source_lang, video_id="fetch") -> List[GlossaryTerm]:
         """Identifies key/difficult vocabulary before translation to ensure consistency."""
         source_name = self._get_full_lang_name(source_lang)
         logger.info(f"Building glossary for {source_name} segments...")
@@ -94,7 +93,7 @@ idioms, or technical terms that are essential for a language learner to understa
 You MUST respond ONLY with a JSON object containing a "vocabulary" array.
 Each object in the array MUST have EXACTLY these keys:
 - "term": The original {source_name} term.
-- "pronunciation": The pronunciation of the term (e.g., Romaji/Kana for Japanese, IPA or phonetics for English). If not applicable, use an empty string "".
+- "pronunciation": The pronunciation of the term (e.g., MUST use Hiragana (平仮名) or/and Katakana (片仮名) for Japanese, NO Romaji. Use IPA or phonetics for English). If not applicable, use an empty string "".
 - "translation": The most accurate {self.target_lang} translation for THIS specific context.
 - "explanation": A brief one-sentence explanation in {self.target_lang} explaining the term's meaning in this context.
 
@@ -120,7 +119,9 @@ Transcript:
                 messages=[
                     {"role": "system", "content": system_prompt},
                     {"role": "user", "content": user_prompt}
-                ]
+                ],
+                log_category="vocab",
+                video_id=video_id
             )
             
             data = self._extract_json(response)
@@ -153,7 +154,7 @@ Transcript:
             logger.error(f"Failed to build glossary: {e}")
             return []
 
-    def translate_segments(self, segments: List[TranscriptionSegment], source_lang='en', glossary: List[GlossaryTerm] = None) -> Generator[List[TranscriptionSegment], None, None]:
+    def translate_segments(self, segments: List[TranscriptionSegment], source_lang='en', glossary: List[GlossaryTerm] = None, video_id="fetch") -> Generator[List[TranscriptionSegment], None, None]:
         """Generator that yields translated chunks for incremental saving."""
         lookback_context = []
         
@@ -210,7 +211,9 @@ Transcript:
                         messages=[
                             {"role": "system", "content": self._get_system_prompt(source_lang)},
                             {"role": "user", "content": prompt}
-                        ]
+                        ],
+                        log_category="translate",
+                        video_id=video_id
                     )
                     
                     translated_chunk_map = {}

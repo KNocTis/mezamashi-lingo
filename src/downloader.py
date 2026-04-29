@@ -1,9 +1,9 @@
 import os
 import yt_dlp
-import logging
 from datetime import datetime
+from src.logger import logger_manager
 
-logger = logging.getLogger(__name__)
+logger = logger_manager.get_main_logger("fetch", __name__)
 
 from .models import VideoMetadata
 from .config import settings

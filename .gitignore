@@ -23,7 +23,7 @@ refs/
 venv/
 .env
 __pycache__/
-*.log
+logs/
 latest_selection.json
 history.json
 channels.json

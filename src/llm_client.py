@@ -3,8 +3,9 @@ import logging
 import litellm
 from .config import settings
 from .models import VideoMetadata
+from src.logger import logger_manager
 
-logger = logging.getLogger(__name__)
+logger = logger_manager.get_main_logger("fetch", __name__)
 
 class LLMClient:
     def __init__(self, model=None, api_base=None, api_key=None, 
@@ -16,8 +17,12 @@ class LLMClient:
         self.fallback_api_key = fallback_api_key or settings.fallback_llm_api_key
         self.fallback_api_base = fallback_api_base or settings.fallback_llm_api_base
 
-    def completion(self, messages, **kwargs):
+    def completion(self, messages, log_category="general", video_id="fetch", **kwargs):
         """Generic completion wrapper with automatic failover support."""
+        import time
+        start_time = time.time()
+        result_content = None
+        
         try:
             # Attempt 1: Primary Model (Local or Preferred)
             call_kwargs = kwargs.copy()
@@ -37,12 +42,13 @@ class LLMClient:
                 except Exception as e:
                     logger.warning(f"Failed to parse LLM_EXTRA_PARAMS: {e}")
                 
-            return litellm.completion(
+            result_content = litellm.completion(
                 model=self.model,
                 messages=messages,
                 num_retries=1, # Low retries for primary to fail fast to fallback
                 **call_kwargs
             ).choices[0].message.content
+            return result_content
             
         except Exception as e:
             # Attempt 2: Fallback Model (Cloud) if primary fails
@@ -53,19 +59,24 @@ class LLMClient:
                     if self.fallback_api_base:
                         fallback_kwargs['api_base'] = self.fallback_api_base
                         
-                    return litellm.completion(
+                    result_content = litellm.completion(
                         model=self.fallback_model,
                         messages=messages,
                         api_key=self.fallback_api_key,
                         num_retries=3,
                         **fallback_kwargs
                     ).choices[0].message.content
+                    return result_content
                 except Exception as fallback_e:
                     logger.error(f"Fallback LLM also failed: {fallback_e}")
                     raise fallback_e
             else:
                 logger.error(f"LLM call failed and no fallback configured: {e}")
                 raise e
+        finally:
+            if result_content is not None:
+                duration_ms = int((time.time() - start_time) * 1000)
+                logger_manager.log_llm_request(log_category, messages, result_content, duration_ms, video_id)
 
     def select_best_video(self, language, videos: list[VideoMetadata], recent_titles=None) -> VideoMetadata:
         """
@@ -114,7 +125,7 @@ Example: {{"index": 0, "reason": "This is a travel documentary, which provides a
                     "role": "user",
                     "content": prompt,
                 }
-            ])
+            ], log_category="selection", video_id="fetch")
 
             result = json.loads(content)
             selected_index = int(result.get("index", 0))

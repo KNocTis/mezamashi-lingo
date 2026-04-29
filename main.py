@@ -14,17 +14,10 @@ from src.downloader import VideoDownloader
 from src.transcriber import VideoTranscriber
 from src.translator import SubtitleTranslator
 
+from src.logger import logger_manager
+
 # Configure logging
-os.makedirs(settings.log_dir, exist_ok=True)
-logging.basicConfig(
-    level=getattr(logging, settings.log_level.upper(), logging.INFO),
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    handlers=[
-        logging.FileHandler(os.path.join(settings.log_dir, "daily_fetcher.log")),
-        logging.StreamHandler()
-    ]
-)
-logger = logging.getLogger(__name__)
+logger = logger_manager.get_main_logger("fetch", __name__)
 
 class WorkflowManager:
     def __init__(self):
@@ -85,7 +78,7 @@ class WorkflowManager:
                     segments = [TranscriptionSegment(**s) for s in data]
                 results.append((video, json_path, segments))
             else:
-                segments = self.transcriber.transcribe(video.local_path, language=video.lang)
+                segments = self.transcriber.transcribe(video.local_path, language=video.lang, video_id=video.video_id)
                 if segments:
                     self.transcriber.save_transcription(segments, json_path)
                     print(f"[{video.lang.upper()}] Transcription completed.")
@@ -109,7 +102,7 @@ class WorkflowManager:
             
             if not glossary:
                 logger.info(f"Building new glossary for {video.lang} video: {video.local_path}")
-                glossary = self.translator.build_glossary(segments, source_lang=video.lang)
+                glossary = self.translator.build_glossary(segments, source_lang=video.lang, video_id=video.video_id)
                 if glossary:
                     self._save_glossary(video, vocab_path, glossary)
                     print(f"[{video.lang.upper()}] Vocabulary generated (JSON + HTML).")
@@ -169,13 +162,13 @@ class WorkflowManager:
             
             if not glossary:
                 logger.info(f"Glossary missing. Building before translation...")
-                glossary = self.translator.build_glossary(segments, source_lang=video.lang)
+                glossary = self.translator.build_glossary(segments, source_lang=video.lang, video_id=video.video_id)
                 if glossary:
                     self._save_glossary(video, vocab_path, glossary)
             
             # 2. Translate
             all_translated = []
-            for chunk_results in self.translator.translate_segments(segments, source_lang=video.lang, glossary=glossary):
+            for chunk_results in self.translator.translate_segments(segments, source_lang=video.lang, glossary=glossary, video_id=video.video_id):
                 all_translated.extend(chunk_results)
                 
                 # Incremental Save

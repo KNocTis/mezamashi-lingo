@@ -4,8 +4,9 @@ import logging
 from typing import List, Optional
 from .models import ChannelConfig, HistoryEntry, VideoMetadata
 from .config import settings
+from src.logger import logger_manager
 
-logger = logging.getLogger(__name__)
+logger = logger_manager.get_main_logger("fetch", __name__)
 
 class Repository:
     @staticmethod
