@@ -22,6 +22,17 @@ class Repository:
             return []
 
     @staticmethod
+    def load_raw_selection() -> List[dict]:
+        if not os.path.exists(settings.selection_file):
+            return []
+        try:
+            with open(settings.selection_file, 'r', encoding='utf-8') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error(f"Error loading raw selection: {e}")
+            return []
+
+    @staticmethod
     def load_history() -> List[HistoryEntry]:
         if not os.path.exists(settings.history_file):
             return []
@@ -51,9 +62,14 @@ class Repository:
     @staticmethod
     def save_selection(videos: List[VideoMetadata]):
         try:
+            from datetime import datetime
             with open(settings.selection_file, 'w', encoding='utf-8') as f:
-                # Save only the IDs as requested
-                json_data = [{"video_id": v.video_id} for v in videos]
+                json_data = [{
+                    "video_id": v.video_id,
+                    "title": v.title,
+                    "llm_reason": v.llm_reason,
+                    "date_picked": datetime.now().strftime("%Y-%m-%d")
+                } for v in videos]
                 json.dump(json_data, f, ensure_ascii=False, indent=2)
         except Exception as e:
             logger.error(f"Error saving selection: {e}")

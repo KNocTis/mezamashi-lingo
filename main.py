@@ -49,9 +49,9 @@ class WorkflowManager:
         # Note: run_glossary doesn't actually use 'json_path' or 'segments' from the tuple
         self.run_glossary([(video, None, None)])
 
-    def run_fetch(self) -> Dict[str, Optional[VideoMetadata]]:
+    def run_fetch(self, force: bool = False) -> Dict[str, Optional[VideoMetadata]]:
         logger.info("PHASE 1: Starting daily video fetch...")
-        selected = self.fetcher.fetch_daily_videos()
+        selected = self.fetcher.fetch_daily_videos(force=force)
         if selected:
             # Filter out None values and convert to list for saving
             active_selections = [v for v in selected.values() if v]
@@ -216,6 +216,7 @@ def main():
                         help="Specific phase to run")
     parser.add_argument('--url', type=str, help="YouTube video URL to process (named argument)")
     parser.add_argument('--lang', type=str, help="Language of the video (if URL is used)")
+    parser.add_argument('--force-fetch', action='store_true', help="Force pick new videos for today even if already picked")
     args = parser.parse_args()
 
     # Resolve URL: positional or named
@@ -247,7 +248,7 @@ def main():
                 logger.error(f"Video ID {url} not found in history. Please provide a full URL to fetch it.")
                 return
     elif args.phase in ['all', 'fetch']:
-        selected_dict = manager.run_fetch()
+        selected_dict = manager.run_fetch(force=args.force_fetch)
     else:
         # Load from selection file (already hydrates from history in Repository.load_selection)
         selection_list = Repository.load_selection()

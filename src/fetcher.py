@@ -15,8 +15,9 @@ class VideoFetcher:
         self.client = youtube_client
         self.llm_client = llm_client
 
-    def fetch_daily_videos(self) -> Dict[str, Optional[VideoMetadata]]:
+    def fetch_daily_videos(self, force: bool = False) -> Dict[str, Optional[VideoMetadata]]:
         """Fetches and selects one video for each language."""
+        from datetime import datetime
         channels = Repository.load_channels()
         if not channels:
             logger.warning("No channels loaded. Check channels.json.")
@@ -25,6 +26,21 @@ class VideoFetcher:
         # Load history to avoid duplicates
         history_data = Repository.load_history()
         seen_ids = {h.id for h in history_data}
+        history_map = {h.video_id: h for h in history_data}
+
+        # Check existing selections for today
+        raw_selection = Repository.load_raw_selection()
+        today_str = datetime.now().strftime("%Y-%m-%d")
+        
+        already_selected_langs = {}
+        if raw_selection and not force:
+            for item in raw_selection:
+                if item.get("date_picked") == today_str:
+                    vid = item.get("video_id")
+                    if vid in history_map:
+                        h = history_map[vid]
+                        if h.lang:
+                            already_selected_langs[h.lang] = h
 
         videos_by_lang: Dict[str, List[VideoMetadata]] = {'en': [], 'ja': []}
 
@@ -33,6 +49,9 @@ class VideoFetcher:
             lang_attr = channel.lang
             
             if not channel_id or lang_attr not in videos_by_lang:
+                return None
+
+            if lang_attr in already_selected_langs:
                 return None
 
             try:
@@ -74,6 +93,11 @@ class VideoFetcher:
         newly_selected_entries: List[HistoryEntry] = []
 
         for lang, videos in videos_by_lang.items():
+            if lang in already_selected_langs:
+                logger.info(f"Using already selected {lang} video from today: {already_selected_langs[lang].title}")
+                selected_videos[lang] = VideoMetadata(**already_selected_langs[lang].model_dump())
+                continue
+
             # Attach duration to video objects
             for v in videos:
                 v.duration_sec = durations.get(v.video_id, 0)
