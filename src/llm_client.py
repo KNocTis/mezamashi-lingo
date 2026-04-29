@@ -1,6 +1,7 @@
 import json
 import logging
 import litellm
+from typing import Optional, List, Dict, Any
 from .config import settings
 from .models import VideoMetadata
 from src.logger import logger_manager
@@ -8,8 +9,8 @@ from src.logger import logger_manager
 logger = logger_manager.get_main_logger("fetch", __name__)
 
 class LLMClient:
-    def __init__(self, model=None, api_base=None, api_key=None, 
-                 fallback_model=None, fallback_api_key=None, fallback_api_base=None):
+    def __init__(self, model: Optional[str] = None, api_base: Optional[str] = None, api_key: Optional[str] = None, 
+                 fallback_model: Optional[str] = None, fallback_api_key: Optional[str] = None, fallback_api_base: Optional[str] = None) -> None:
         self.model = model or settings.llm_model
         self.api_base = api_base or settings.llm_api_base
         self.api_key = api_key or settings.llm_api_key
@@ -17,7 +18,7 @@ class LLMClient:
         self.fallback_api_key = fallback_api_key or settings.fallback_llm_api_key
         self.fallback_api_base = fallback_api_base or settings.fallback_llm_api_base
 
-    def completion(self, messages, log_category="general", video_id="fetch", **kwargs):
+    def completion(self, messages: List[Dict[str, str]], log_category: str = "general", video_id: str = "fetch", **kwargs: Any) -> str:
         """Generic completion wrapper with automatic failover support."""
         import time
         start_time = time.time()
@@ -78,7 +79,7 @@ class LLMClient:
                 duration_ms = int((time.time() - start_time) * 1000)
                 logger_manager.log_llm_request(log_category, messages, result_content, duration_ms, video_id)
 
-    def select_best_video(self, language, videos: list[VideoMetadata], recent_titles=None) -> VideoMetadata:
+    def select_best_video(self, language: str, videos: List[VideoMetadata], recent_titles: Optional[List[str]] = None) -> Optional[VideoMetadata]:
         """
         Sends a list of videos to LLM and asks it to select the best one for language learning.
         Includes recently seen titles to ensure topic variety.

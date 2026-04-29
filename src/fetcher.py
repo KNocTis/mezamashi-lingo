@@ -1,6 +1,6 @@
 import logging
 import random
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Any, Tuple
 from concurrent.futures import ThreadPoolExecutor
 from .youtube_client import YouTubeClient
 from .llm_client import LLMClient
@@ -12,7 +12,7 @@ logger = logger_manager.get_main_logger("fetch", __name__)
 from .config import settings
 
 class VideoFetcher:
-    def __init__(self, youtube_client: YouTubeClient, llm_client: Optional[LLMClient] = None):
+    def __init__(self, youtube_client: YouTubeClient, llm_client: Optional[LLMClient] = None) -> None:
         self.client = youtube_client
         self.llm_client = llm_client
 
@@ -45,7 +45,7 @@ class VideoFetcher:
 
         videos_by_lang: Dict[str, List[VideoMetadata]] = {'en': [], 'ja': []}
 
-        def process_channel(channel):
+        def process_channel(channel: Any) -> Optional[Tuple[str, List[VideoMetadata]]]:
             channel_id = channel.id
             lang_attr = channel.lang
             

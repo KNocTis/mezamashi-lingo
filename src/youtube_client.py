@@ -9,8 +9,10 @@ logger = logger_manager.get_main_logger("fetch", __name__)
 
 from .config import settings
 
+from typing import Optional, List, Dict, Any
+
 class YouTubeClient:
-    def __init__(self, api_key=None, cache_dir='.cache'):
+    def __init__(self, api_key: Optional[str] = None, cache_dir: str = '.cache') -> None:
         self.api_key = api_key or settings.youtube_api_key
         self._service = None
         self.cache_dir = cache_dir
@@ -23,7 +25,7 @@ class YouTubeClient:
             self._service = build('youtube', 'v3', developerKey=self.api_key)
         return self._service
 
-    def _get_cache(self, key, ttl_seconds=600):
+    def _get_cache(self, key: str, ttl_seconds: int = 600) -> Optional[Any]:
         """Retrieves data from cache if it hasn't expired."""
         cache_path = os.path.join(self.cache_dir, f"{key}.json")
         if os.path.exists(cache_path):
@@ -32,13 +34,13 @@ class YouTubeClient:
                     return json.load(f)
         return None
 
-    def _set_cache(self, key, data):
+    def _set_cache(self, key: str, data: Any) -> None:
         """Saves data to cache."""
         cache_path = os.path.join(self.cache_dir, f"{key}.json")
         with open(cache_path, 'w', encoding='utf-8') as f:
             json.dump(data, f, ensure_ascii=False)
 
-    def get_uploads_playlist_id(self, channel_id):
+    def get_uploads_playlist_id(self, channel_id: str) -> Optional[str]:
         """Retrieves the uploads playlist ID for a given channel ID."""
         cache_key = f"playlist_id_{channel_id}"
         cached = self._get_cache(cache_key)
@@ -73,7 +75,7 @@ class YouTubeClient:
             logger.error(f"HTTP error occurred: {e}")
             return None
 
-    def get_recent_videos(self, playlist_id, hours=24):
+    def get_recent_videos(self, playlist_id: str, hours: int = 24) -> List[Dict[str, Any]]:
         """Fetches videos from a playlist uploaded within the last N hours."""
         cache_key = f"recent_videos_{playlist_id}"
         cached = self._get_cache(cache_key, ttl_seconds=300) # shorter cache for recent videos
@@ -125,7 +127,7 @@ class YouTubeClient:
                 logger.error(f"HTTP error occurred while fetching playlist items: {e}")
             return []
 
-    def get_video_durations(self, video_ids):
+    def get_video_durations(self, video_ids: List[str]) -> Dict[str, int]:
         """Fetches durations for a list of video IDs and returns a mapping {video_id: duration_seconds}."""
         if not video_ids:
             return {}
@@ -180,7 +182,7 @@ class YouTubeClient:
             logger.error(f"Error fetching video durations: {e}")
             return {}
 
-    def get_video_info(self, video_id):
+    def get_video_info(self, video_id: str) -> Optional[Dict[str, Any]]:
         """Fetches metadata for a specific video ID."""
         cache_key = f"video_info_{video_id}"
         cached = self._get_cache(cache_key, ttl_seconds=86400)
@@ -223,7 +225,7 @@ class YouTubeClient:
             logger.error(f"Error fetching video info: {e}")
             return None
 
-    def _parse_duration(self, duration_str):
+    def _parse_duration(self, duration_str: str) -> int:
         """Parses ISO 8601 duration (e.g., PT3M45S) into total seconds."""
         import re
         # Pattern for PT#H#M#S

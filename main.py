@@ -20,7 +20,7 @@ from src.logger import logger_manager
 logger = logger_manager.get_main_logger("fetch", __name__)
 
 class WorkflowManager:
-    def __init__(self):
+    def __init__(self) -> None:
         self.llm_client = LLMClient()
         self.youtube_client = YouTubeClient()
         self.fetcher = VideoFetcher(self.youtube_client, self.llm_client)
@@ -29,7 +29,7 @@ class WorkflowManager:
         self.translator = SubtitleTranslator(self.llm_client)
         self.repository = Repository()
 
-    def _save_glossary(self, video: VideoMetadata, json_path: str, glossary: List[GlossaryTerm]):
+    def _save_glossary(self, video: VideoMetadata, json_path: str, glossary: List[GlossaryTerm]) -> None:
         """Saves glossary to JSON and triggers HTML generation."""
         if not glossary:
             return
@@ -85,7 +85,7 @@ class WorkflowManager:
                     results.append((video, json_path, segments))
         return results
 
-    def run_vocabulary(self, transcriptions: List[tuple]):
+    def run_vocabulary(self, transcriptions: List[tuple]) -> None:
         logger.info("PHASE 4: Starting vocabulary generation (JSON)...")
         for video, json_path, segments in transcriptions:
             vocab_path = os.path.splitext(video.local_path)[0] + "_vocab.json"
@@ -110,7 +110,7 @@ class WorkflowManager:
                 # If glossary existed, still regenerate HTML to be safe
                 self.run_glossary([(video, json_path, segments)])
 
-    def run_glossary(self, transcriptions: List[tuple]):
+    def run_glossary(self, transcriptions: List[tuple]) -> None:
         logger.info("PHASE 4.5: Starting glossary HTML generation...")
         for video, json_path, segments in transcriptions:
             base_path = os.path.splitext(video.local_path)[0]
@@ -141,7 +141,7 @@ class WorkflowManager:
             else:
                 logger.warning(f"No glossary JSON found for {video.video_id}. Run 'vocabulary' phase first.")
 
-    def run_translate(self, transcriptions: List[tuple]):
+    def run_translate(self, transcriptions: List[tuple]) -> None:
         logger.info("PHASE 4: Starting translation...")
         for video, json_path, segments in transcriptions:
             bilingual_srt = os.path.splitext(video.local_path)[0] + ".chs.srt"

@@ -20,8 +20,7 @@ class LoggerManager:
             self.start_datetime = datetime.now()
             self.start_time_prefix = self.start_datetime.strftime("%y%m%d-%H-%M")
             self.date_folder_name = self.start_datetime.strftime("%Y%m%d")
-            self.current_log_dir = os.path.join(self.base_log_dir, self.date_folder_name)
-            
+            self.current_log_dir = os.path.join(self.base_log_dir, self.date_folder_name, self.start_time_prefix)
             self._setup_directories()
             self._cleanup_old_logs()
             
@@ -37,7 +36,8 @@ class LoggerManager:
         try:
             if os.path.exists(latest_symlink) or os.path.islink(latest_symlink):
                 os.unlink(latest_symlink)
-            os.symlink(self.date_folder_name, latest_symlink)
+            target_link = os.path.join(self.date_folder_name, self.start_time_prefix)
+            os.symlink(target_link, latest_symlink)
         except OSError:
             # Might fail on Windows without admin rights, or if there's a permission issue
             pass
@@ -58,7 +58,7 @@ class LoggerManager:
             pass
 
     def _get_file_path(self, context, category, ext):
-        filename = f"{self.start_time_prefix}-{context}-{category}.{ext}"
+        filename = f"{context}-{category}.{ext}"
         return os.path.join(self.current_log_dir, filename)
 
     def get_main_logger(self, context="fetch", name=None):
@@ -90,15 +90,14 @@ class LoggerManager:
         self._loggers[logger_name] = logger
         return logger
 
-    def _append_jsonl(self, filepath, data):
-        try:
-            with open(filepath, 'a', encoding='utf-8') as f:
-                json_str = json.dumps(data, ensure_ascii=False)
-                f.write(json_str + '\n')
-        except Exception as e:
-            # Fallback to standard logging if JSONL fails
-            fallback_logger = self.get_main_logger("system")
-            fallback_logger.error(f"Failed to write to JSONL {filepath}: {e}")
+    def _write_json_sequence(self, context, category, data):
+        folder_path = os.path.join(self.current_log_dir, f"{context}-{category}")
+        os.makedirs(folder_path, exist_ok=True)
+        
+        timestamp_ms = datetime.now().strftime("%H-%M-%S.%f")[:-3]
+        filepath = os.path.join(folder_path, f"{timestamp_ms}.json")
+        
+        self._write_json(filepath, data)
 
     def _write_json(self, filepath, data):
         try:
@@ -109,7 +108,6 @@ class LoggerManager:
             fallback_logger.error(f"Failed to write to JSON {filepath}: {e}")
 
     def log_youtube_api(self, endpoint, request_info, response_info, duration_ms, context="fetch"):
-        filepath = self._get_file_path(context, "youtube", "jsonl")
         log_entry = {
             "timestamp": datetime.now().isoformat(),
             "endpoint": endpoint,
@@ -117,17 +115,16 @@ class LoggerManager:
             "request": request_info,
             "response": response_info
         }
-        self._append_jsonl(filepath, log_entry)
+        self._write_json_sequence(context, "youtube", log_entry)
 
     def log_llm_request(self, category, prompt, response, duration_ms, video_id):
-        filepath = self._get_file_path(video_id, f"llm-{category}", "jsonl")
         log_entry = {
             "timestamp": datetime.now().isoformat(),
             "duration_ms": duration_ms,
             "prompt": prompt,
             "response": response
         }
-        self._append_jsonl(filepath, log_entry)
+        self._write_json_sequence(video_id, f"llm-{category}", log_entry)
 
     def log_transcription_params(self, params, video_id):
         filepath = self._get_file_path(video_id, "transcription", "json")

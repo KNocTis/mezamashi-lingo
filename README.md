@@ -21,6 +21,9 @@ The script is designed to be flexible, supporting both automated daily runs and 
 Runs the entire workflow for all configured channels: fetch, download, transcribe, generate vocabulary, and translate.
 ```bash
 ./venv/bin/python main.py
+
+# Force pick new videos for today even if already picked
+./venv/bin/python main.py --force-fetch
 ```
 
 #### **B. Single Video Processing**
