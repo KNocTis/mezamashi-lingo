@@ -34,7 +34,8 @@
         }
 
         .container {
-            max-width: 900px;
+            max-width: 1200px;
+            width: 100%;
             margin: 0 auto;
         }
 
@@ -57,7 +58,7 @@
 
         h1 {
             font-family: 'Outfit', sans-serif;
-            font-size: 2.5rem;
+            font-size: 2rem;
             font-weight: 700;
             margin-bottom: 0.5rem;
             background: linear-gradient(to right, #fff, #94a3b8);
@@ -116,24 +117,31 @@
         .term {
             font-weight: 700;
             color: var(--accent);
-            font-size: 1.125rem;
+            font-size: 1rem;
+        }
+
+        .pronunciation {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+            margin-top: 0.25rem;
+            font-weight: 400;
         }
 
         .translation {
             font-weight: 600;
             color: var(--text-main);
             margin-bottom: 0.25rem;
-            font-size: 1.125rem;
+            font-size: 1rem;
         }
 
         .explanation {
             color: var(--text-muted);
-            font-size: 0.9375rem;
+            font-size: 0.85rem;
             line-height: 1.5;
         }
 
         @media (max-width: 640px) {
-            h1 { font-size: 1.75rem; }
+            h1 { font-size: 1.5rem; }
             td, th { padding: 1rem; }
             .term-cell { width: 35%; }
         }
@@ -178,7 +186,10 @@
                     const row = document.createElement('tr');
                     
                     row.innerHTML = `
-                        <td class="term-cell"><span class="term">${item.term}</span></td>
+                        <td class="term-cell">
+                            <div class="term">${item.term}</div>
+                            ${item.pronunciation ? `<div class="pronunciation">${item.pronunciation}</div>` : ''}
+                        </td>
                         <td>
                             <div class="translation">${item.translation}</div>
                             <div class="explanation">${item.explanation}</div>

@@ -91,14 +91,27 @@ Your task is to analyze a transcript and identify the most important vocabulary 
         user_prompt = f"""Analyze the following {source_name} transcript and identify the top 15 key vocabulary terms, 
 idioms, or technical terms that are essential for a language learner to understand this specific topic.
 
-For each term, you MUST provide:
-1. 'term': The original {source_name} term.
-2. 'translation': The most accurate {self.target_lang} translation for THIS specific context.
-3. 'explanation': A brief one-sentence explanation in {self.target_lang} explaining the term's meaning in this context.
+You MUST respond ONLY with a JSON object containing a "vocabulary" array.
+Each object in the array MUST have EXACTLY these keys:
+- "term": The original {source_name} term.
+- "pronunciation": The pronunciation of the term (e.g., Romaji/Kana for Japanese, IPA or phonetics for English). If not applicable, use an empty string "".
+- "translation": The most accurate {self.target_lang} translation for THIS specific context.
+- "explanation": A brief one-sentence explanation in {self.target_lang} explaining the term's meaning in this context.
 
 CRITICAL: The 'translation' and 'explanation' fields MUST be written in {self.target_lang}.
 
-Response format: Respond ONLY with a JSON list of objects under a "vocabulary" key.
+JSON Response format example:
+{{
+  "vocabulary": [
+    {{
+      "term": "...",
+      "pronunciation": "...",
+      "translation": "...",
+      "explanation": "..."
+    }}
+  ]
+}}
+
 Transcript:
 {sample_text}
 """
@@ -130,6 +143,7 @@ Transcript:
                 if isinstance(item, dict) and item.get('term'):
                     final_glossary.append(GlossaryTerm(
                         term=item.get('term'),
+                        pronunciation=item.get('pronunciation', ''),
                         translation=item.get('translation', ''),
                         explanation=item.get('explanation', '')
                     ))

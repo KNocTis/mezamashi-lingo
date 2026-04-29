@@ -25,6 +25,7 @@ class TranscriptionSegment(BaseModel):
 
 class GlossaryTerm(BaseModel):
     term: str
+    pronunciation: Optional[str] = None
     translation: str
     explanation: str
 
