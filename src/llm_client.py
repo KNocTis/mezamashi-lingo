@@ -106,10 +106,17 @@ You are an expert language teacher specializing in {language}.
 Your task is to select the absolute BEST video for a language learner from the list below.
 
 Criteria for selection:
-1. Educational Value: Prefer videos with clear, standard speech (news, documentaries, educational content).
-2. Topic Variety: CRITICAL - Avoid videos that cover the same topics as the recently studied titles listed below. We want a fresh subject every day.
-3. Duration: Prefer videos around 3-5 minutes.
-4. Content: Prefer titles that suggest a narrative or clear topic.
+1. Local Content Preference: CRITICAL - Strongly prefer local news and topics deeply relevant to residents where {language} is spoken (e.g., new local laws, daily living issues, local culture). You may select international news (e.g., global conflicts, US breaking news) ONLY IF it has a direct impact on or relation to local rules, residents, or living conditions in that region.
+2. Duration Preference: Rank the videos based on their length according to this priority (from best to worst):
+   - 1st choice: 5-10 minutes
+   - 2nd choice: ~10 minutes
+   - 3rd choice: 10-15 minutes
+   - 4th choice: 3-5 minutes
+   - 5th choice: ~20 minutes
+   - 6th choice: ~1 minute
+3. Educational Value: Prefer videos with clear, standard speech (news, documentaries, educational content).
+4. Topic Variety: CRITICAL - Avoid videos that cover the same topics as the recently studied titles listed below. We want a fresh subject every day.
+5. Content: Prefer titles that suggest a narrative or clear topic.
 {history_context}
 
 Videos:
