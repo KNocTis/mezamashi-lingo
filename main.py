@@ -141,14 +141,15 @@ class WorkflowManager:
             else:
                 logger.warning(f"No glossary JSON found for {video.video_id}. Run 'vocabulary' phase first.")
 
-    def run_translate(self, transcriptions: List[tuple]) -> None:
-        logger.info("PHASE 4: Starting translation...")
+    def run_translate(self, transcriptions: List[tuple], subtitle_format: str = 'ass') -> None:
+        logger.info(f"PHASE 4: Starting translation (output format: {subtitle_format.upper()})...")
         for video, json_path, segments in transcriptions:
-            bilingual_srt = os.path.splitext(video.local_path)[0] + ".chs.srt"
-            vocab_path = os.path.splitext(video.local_path)[0] + "_vocab.json"
-            
+            base_path = os.path.splitext(video.local_path)[0]
+            bilingual_path = base_path + f".chs.{subtitle_format}"
+            vocab_path = base_path + "_vocab.json"
+
             logger.info(f"Processing {video.lang} video: {video.local_path}")
-            
+
             # Load Glossary (required for consistent translation)
             glossary = None
             if os.path.exists(vocab_path):
@@ -159,27 +160,35 @@ class WorkflowManager:
                     logger.info(f"Loaded existing glossary: {vocab_path}")
                 except Exception as e:
                     logger.warning(f"Failed to load glossary: {e}")
-            
+
             if not glossary:
                 logger.info(f"Glossary missing. Building before translation...")
                 glossary = self.translator.build_glossary(segments, source_lang=video.lang, video_id=video.video_id)
                 if glossary:
                     self._save_glossary(video, vocab_path, glossary)
-            
-            # 2. Translate
+
+            # Save helper: routes to ASS or SRT based on chosen format
+            def _incremental_save(data):
+                self.transcriber.save_transcription(data, json_path)
+                if subtitle_format == 'srt':
+                    self.translator.save_bilingual_srt(data, bilingual_path)
+                else:
+                    self.translator.save_bilingual_ass(data, bilingual_path)
+
+            # Translate in streaming chunks with incremental saves
             all_translated = []
-            for chunk_results in self.translator.translate_segments(segments, source_lang=video.lang, glossary=glossary, video_id=video.video_id):
+            for chunk_results in self.translator.translate_segments(
+                segments, source_lang=video.lang, glossary=glossary, video_id=video.video_id
+            ):
                 all_translated.extend(chunk_results)
-                
-                # Incremental Save
-                remaining = segments[len(all_translated):]
-                current_data = all_translated + remaining
-                self.transcriber.save_transcription(current_data, json_path)
-                self.translator.save_bilingual_srt(current_data, bilingual_srt)
-                
+
+                # Incremental save: translated so far + untranslated remainder
+                current_data = all_translated + segments[len(all_translated):]
+                _incremental_save(current_data)
+
                 logger.info(f"[{video.lang.upper()}] Progress: {len(all_translated)}/{len(segments)}")
-            
-            print(f"[{video.lang.upper()}] Translation completed.")
+
+            print(f"[{video.lang.upper()}] Translation completed -> {bilingual_path}")
 
     def run_single_fetch(self, url: str, lang: Optional[str] = None) -> Dict[str, Optional[VideoMetadata]]:
         logger.info(f"Fetching metadata for single video: {url}")
@@ -210,6 +219,8 @@ def main():
     parser.add_argument('--url', type=str, help="YouTube video URL to process (named argument)")
     parser.add_argument('--lang', type=str, help="Language of the video (if URL is used)")
     parser.add_argument('--force-fetch', action='store_true', help="Force pick new videos for today even if already picked")
+    parser.add_argument('--subtitle-format', type=str, default='ass', choices=['ass', 'srt'],
+                        help="Output subtitle format for bilingual subtitles (default: ass)")
     args = parser.parse_args()
 
     # Resolve URL: positional or named
@@ -265,7 +276,7 @@ def main():
 
     # 5. Translate
     if args.phase in ['all', 'translate']:
-        manager.run_translate(transcriptions)
+        manager.run_translate(transcriptions, subtitle_format=args.subtitle_format)
 
     logger.info(f"Execution completed.")
 

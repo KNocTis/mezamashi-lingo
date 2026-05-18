@@ -251,17 +251,55 @@ Transcript:
             
             time.sleep(1)
 
-    def save_bilingual_srt(self, segments: List[TranscriptionSegment], output_path):
+    def save_bilingual_ass(self, segments: List[TranscriptionSegment], output_path: str) -> bool:
+        """Saves a bilingual ASS file with Original and Translated dialogue tracks."""
+        try:
+            with open(output_path, 'w', encoding='utf-8') as f:
+                f.write("[Script Info]\n")
+                f.write("ScriptType: v4.00+\n")
+                f.write("PlayResX: 1920\n")
+                f.write("PlayResY: 1080\n")
+                f.write("ScaledBorderAndShadow: yes\n")
+                f.write("WrapStyle: 2\n")
+                f.write("\n")
+                f.write("[V4+ Styles]\n")
+                f.write("Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding\n")
+                # Original: white, larger font, higher on screen (MarginV=85 from bottom)
+                f.write("Style: Original,Arial,54,&H00FFFFFF,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,1.5,0.5,2,10,10,85,1\n")
+                # Translated: light gray, smaller font, closer to bottom (MarginV=50)
+                f.write("Style: Translated,Arial,42,&H00D0D0D0,&H000000FF,&H00000000,&H00000000,0,0,0,0,100,100,0,0,1,1.5,0.5,2,10,10,50,1\n")
+                f.write("\n")
+                f.write("[Events]\n")
+                f.write("Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text\n")
+
+                for seg in segments:
+                    start = self._format_timestamp_ass(seg.start)
+                    end = self._format_timestamp_ass(seg.end)
+                    # Escape newlines in subtitle text for ASS format
+                    original = seg.text.replace('\n', '\\N')
+                    translated = (seg.translated_text or "").replace('\n', '\\N')
+
+                    f.write(f"Dialogue: 0,{start},{end},Original,,0,0,0,,{original}\n")
+                    if translated:
+                        f.write(f"Dialogue: 0,{start},{end},Translated,,0,0,0,,{translated}\n")
+
+            logger.info(f"Bilingual ASS saved to: {output_path}")
+            return True
+        except Exception as e:
+            logger.error(f"Failed to save bilingual ASS: {e}")
+            return False
+
+    def save_bilingual_srt(self, segments: List[TranscriptionSegment], output_path: str) -> bool:
         """Saves a bilingual SRT file: [Original]\n[Translated]"""
         try:
             with open(output_path, 'w', encoding='utf-8') as f:
                 for i, seg in enumerate(segments):
                     idx = i + 1
-                    start = self._format_timestamp(seg.start)
-                    end = self._format_timestamp(seg.end)
+                    start = self._format_timestamp_srt(seg.start)
+                    end = self._format_timestamp_srt(seg.end)
                     original = seg.text
                     translated = seg.translated_text or ""
-                    
+
                     f.write(f"{idx}\n{start} --> {end}\n{original}\n{translated}\n\n")
             logger.info(f"Bilingual SRT saved to: {output_path}")
             return True
@@ -269,9 +307,18 @@ Transcript:
             logger.error(f"Failed to save bilingual SRT: {e}")
             return False
 
-    def _format_timestamp(self, seconds):
+    def _format_timestamp_srt(self, seconds: float) -> str:
+        """Format timestamp for SRT: HH:MM:SS,mmm"""
         h = int(seconds // 3600)
         m = int((seconds % 3600) // 60)
         s = seconds % 60
         ms = int((s - int(s)) * 1000)
         return f"{h:02d}:{m:02d}:{int(s):02d},{ms:03d}"
+
+    def _format_timestamp_ass(self, seconds: float) -> str:
+        """Format timestamp for ASS: H:MM:SS.cc (centiseconds)"""
+        h = int(seconds // 3600)
+        m = int((seconds % 3600) // 60)
+        s = seconds % 60
+        cs = int((s - int(s)) * 100)
+        return f"{h}:{m:02d}:{int(s):02d}.{cs:02d}"
